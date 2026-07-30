@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% block page_heading %}Invoices & Search{% endblock %}{% block title %}Invoices & Search{%
+endblock %}{% block content %}<div class="container-fluid py-4">
+    <h2>Invoices & Search</h2>
+    <div class="card shadow-sm my-4">
+        <div class="card-body">
+            <form class="row g-2">
+                <div class="col-md-5"><input name="search" value="{{search}}" class="form-control"
+                        placeholder="Search customer, phone or invoice"></div>
+                <div class="col-md-3"><select name="status" class="form-select">
+                        <option value="">All Rental Statuses</option>
+                        <option value="Active" {% if status=="Active" %}selected{% endif %}>Active</option>
+                        <option value="Returned" {% if status=="Returned" %}selected{% endif %}>Returned</option>
+                    </select></div>
+                <div class="col-md-3"><select name="payment_status" class="form-select">
+                        <option value="">All Payment Statuses</option>
+                        <option value="Paid" {% if payment_status=="Paid" %}selected{% endif %}>Paid</option>
+                        <option value="Partial" {% if payment_status=="Partial" %}selected{% endif %}>Partial</option>
+                        <option value="Pending" {% if payment_status=="Pending" %}selected{% endif %}>Pending</option>
+                    </select></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100">Search</button></div>
+            </form>
+        </div>
+    </div>
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table">
+                <tr>
+                    <th>Invoice</th>
+                    <th>Customer</th>
+                    <th>Products</th>
+                    <th>Total/Day</th>
+                    <th>Rental Charges</th>
+                    <th>Deposit</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>{% for r in invoices %}<tr>
+                    <td>{{r.invoice_number}}</td>
+                    <td>{{r.customer.customer_name}}</td>
+                    <td>{{r.items|length}}</td>
+                    <td>{{app_settings.currency_symbol}}{{"%.2f"|format(r.total_price_per_day)}}</td>
+                    <td>{{app_settings.currency_symbol}}{{"%.2f"|format(r.rental_charges)}}</td>
+                    <td>{{app_settings.currency_symbol}}{{"%.2f"|format(r.deposit_collected)}}</td>
+                    <td>{{r.status}}</td>
+                    <td><a href="{{url_for('invoice_detail',invoice_id=r.id)}}" class="btn btn-sm btn-primary">Open
+                            Invoice / Receipt</a></td>
+                </tr>{% else %}<tr>
+                    <td colspan="8" class="text-center">No invoices found.</td>
+                </tr>{% endfor %}
+            </table>
+        </div>
+    </div>
+</div>{% endblock %}

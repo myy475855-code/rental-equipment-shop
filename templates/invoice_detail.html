@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4 invoice-page">
+  <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+      <h2 class="mb-1">Invoice / Receipt</h2>
+      <div class="text-muted">{{ invoice.invoice_number }}</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('invoices') }}">Back to Search</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('download_invoice', invoice_id=invoice.id) }}">Download</a>
+      <button class="btn btn-primary" onclick="window.print()">Print Invoice</button>
+    </div>
+  </div>
+
+  <div class="invoice-paper">
+    <div class="invoice-header">
+      <div>
+        <h1 class="mb-1">RENTAL INVOICE</h1>  
+      </div>
+      <div class="text-end">
+        <div class="text-muted">Invoice No: <strong>{{ invoice.invoice_number }}</strong></div>
+        <div class="text-muted">Rental Date: {{ invoice.rental_date }}</div>
+        <div>Status: <strong>{{ invoice.status }}</strong></div>
+      </div>
+    </div>
+
+    <div class="row invoice-customer-box">
+      <div class="col-md-6">
+        <div class="invoice-info">
+          <div class="invoice-label">CUSTOMER</div>
+          <h6 class="mb-1">{{ invoice.customer.customer_name }}</h6>
+          <div>{{ invoice.customer.phone }}</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="invoice-info">
+          <div>Products: <strong>{{ invoice.items|length }}</strong></div>
+          <div>Total Price Per Day: <strong>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.total_price_per_day) }}</strong></div>
+          <div>Payment Status: <strong>{{ invoice.payment_status }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive mt-1">
+      <table class="table invoice-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Start</th>
+            <th>Return / Due</th>
+            <th>Days</th>
+            <th>Price / Day</th>
+            <th>Total / Day</th>
+            <th>Rental Charge</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for i in invoice.items %}
+          <tr>
+            <td><strong>{{ i.product.item_name }}</strong></td>
+            <td>{{ i.quantity }}</td>
+            <td>{{ i.rental_start_date }}</td>
+            <td>{{ i.rental_return_date }}</td>
+            <td>{{ i.rental_days }}</td>
+            <td>{{ app_settings.currency_symbol }}{{ "%.2f"|format(i.rental_price) }}</td>
+            <td>{{ app_settings.currency_symbol }}{{ "%.2f"|format(i.daily_total) }}</td>
+            <td>{{ app_settings.currency_symbol }}{{ "%.2f"|format(i.line_total) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row justify-content-center mt-1">
+        <div class="deposit-box col-md-6">
+        <h5>Security Deposit</h5>
+        <div class="row">
+            <div class="col-md-4">Customer-Agreed Deposit<br><strong>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.deposit_collected) }}</strong></div>
+            <div class="col-md-4">Deposit Deducted<br><strong>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.deposit_deducted) }}</strong></div>
+            <div class="col-md-4">Deposit Refunded<br><strong>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.deposit_refunded) }}</strong></div>
+        </div>
+        </div>
+      <div class="col-md-5">
+        <table class="table invoice-total-table">
+          <tr><td>Total Price Per Day</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.total_price_per_day) }}</th></tr>
+          <tr><td>Rental Charges</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.rental_charges) }}</th></tr>
+          <tr><td>Late Fees</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.late_fee) }}</th></tr>
+          <tr><td>Damage Recovery</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.damage_charges) }}</th></tr>
+          <tr><td>Loss Recovery</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.loss_charges) }}</th></tr>
+          <tr class="grand-total"><td>Total Due</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.total_due) }}</th></tr>
+          <tr><td>Payment Received</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.payment_received) }}</th></tr>
+          <tr><td>Balance Due</td><th>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.balance_due) }}</th></tr>
+        </table>
+      </div>
+    </div>
+
+
+    {% if invoice.status != "Returned" %}
+    <div class="action-panel no-print mt-2">
+      <h5>Return Products</h5>
+      <p class="text-muted">Enter the actual return date and agree damage/loss recovery at the time of return. The deposit refund is calculated automatically.</p>
+      <form method="POST" action="{{ url_for('return_rental', rental_id=invoice.id) }}" class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label">Actual Return Date</label>
+          <input type="date" name="actual_return_date" value="{{ today.strftime('%Y-%m-%d') }}" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Damage Recovery</label>
+          <input type="number" name="damage_charges" min="0" step="0.01" class="form-control" placeholder="0.00">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Loss Recovery</label>
+          <input type="number" name="loss_charges" min="0" step="0.01" class="form-control" placeholder="0.00">
+        </div>
+        <div class="col-12">
+          <button class="btn btn-success">Complete Return & Refund Deposit</button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="alert alert-success no-print mt-2">
+      Products returned on <strong>{{ invoice.actual_return_date }}</strong>.
+      Deposit refunded: <strong>{{ app_settings.currency_symbol }}{{ "%.2f"|format(invoice.deposit_refunded) }}</strong>.
+    </div>
+    {% endif %}
+
+    <div class="action-panel no-print mt-2">
+      <h5>Payment</h5>
+      <form method="POST" action="{{ url_for('record_payment', rental_id=invoice.id) }}" class="row g-2">
+        <div class="col-md-9">
+          <input type="number" name="payment_amount" min="0" step="0.01" class="form-control" placeholder="Enter payment amount">
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100">Record Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
